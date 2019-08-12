@@ -37,10 +37,11 @@ fn main() -> Result<(), Error> {
         let last_commit = branch.get().peel_to_commit()?;
 
         let commit_time = last_commit.time();
+        let message = last_commit.message().and_then(|m| m.split('\n').next()).unwrap_or_default().to_string();
         let commit_time = NaiveDateTime::from_timestamp(commit_time.seconds() as i64, 0);
         let commit_time = Utc.from_local_datetime(&commit_time).single().expect("Ambiguous timestamp");
 
-        rv.push((branch, commit_time));
+        rv.push((branch, commit_time, message));
     }
     if !args.alphabetical {
         rv.sort_unstable_by_key(|v| v.1);
@@ -49,8 +50,8 @@ fn main() -> Result<(), Error> {
         rv.reverse();
     }
 
-    for (branch, commit_time) in rv {
-        let line =  format!("{} [{}]", branch.name()?.unwrap_or(""), chrono_humanize::HumanTime::from(commit_time));
+    for (branch, commit_time, message) in rv {
+        let line =  format!("{} [{}] {}", branch.name()?.unwrap_or(""), chrono_humanize::HumanTime::from(commit_time), message);
         let diff = now - commit_time;
         if diff.num_weeks() > 4 {
             println!("{}", line.red());
